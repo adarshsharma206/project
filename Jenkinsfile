@@ -10,7 +10,7 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/adarshsharma206/blogging-app.git'
+                git 'https://github.com/adarshsharma206/project.git'
             }
         }
 
