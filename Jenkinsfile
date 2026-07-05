@@ -45,7 +45,7 @@ pipeline {
                 docker pull $IMAGE:latest
                 docker stop blogging || true
                 docker rm blogging || true
-                docker run -d --name blogging -p 80:80 $IMAGE:latest
+                docker run -d --name blogging -p 9090:81 $IMAGE:latest
                 EOF
                 '''
             }
