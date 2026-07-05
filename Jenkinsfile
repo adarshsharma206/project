@@ -4,19 +4,20 @@ pipeline {
 
     environment {
         IMAGE = "adarsh206/blogging-app"
+        APP_SERVER = "10.0.2.144"
     }
 
     stages {
 
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/adarshsharma206/project.git'
+                git branch: 'master', url: 'https://github.com/adarshsharma206/project.git'
             }
         }
 
-        stage('Build Image') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE:latest .'
+                sh "docker build -t ${IMAGE}:latest ."
             }
         }
 
@@ -24,31 +25,44 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub',
-                    usernameVariable: 'USERNAME',
-                    passwordVariable: 'PASSWORD'
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh 'echo $PASSWORD | docker login -u $USERNAME --password-stdin'
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    '''
                 }
             }
         }
 
-        stage('Push Image') {
+        stage('Push Docker Image') {
             steps {
-                sh 'docker push $IMAGE:latest'
+                sh "docker push ${IMAGE}:latest"
             }
         }
 
         stage('Deploy') {
             steps {
-                sh '''
-                ssh ubuntu@10.0.2.144 << EOF
-                docker pull $IMAGE:latest
-                docker stop blogging || true
-                docker rm blogging || true
-                docker run -d --name blogging -p 9090:81 $IMAGE:latest
-                EOF
-                '''
+                sh """
+                ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER} '
+                sudo docker pull ${IMAGE}:latest &&
+                sudo docker stop blogging || true &&
+                sudo docker rm blogging || true &&
+                sudo docker run -d --name blogging -p 9090:80 ${IMAGE}:latest
+                '
+                """
             }
+        }
+
+    }
+
+    post {
+        success {
+            echo 'Application deployed successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
